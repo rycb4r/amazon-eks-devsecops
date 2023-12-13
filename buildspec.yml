@@ -11,7 +11,7 @@ phases:
       - pip3 install typing
       - pip3 install awscli --force-reinstall --upgrade
       - pip list
-      - wget --quiet https://aqua-binary.s3.amazonaws.com/scannercli
+      - wget --quiet --user $AQUA_USER --password $AQUA_PASSWORD https://download.aquasec.com/scanner/2311.3.2/scannercli        
       - chmod +x scannercli
   pre_build:
       commands:
@@ -22,7 +22,7 @@ phases:
   build:
     commands:
       - docker build --tag $REPOSITORY_URI:$TAG .
-      - ./scannercli scan --host $AQUA_URL --user $AQUA_USER --password $AQUA_PASSWORD --local $REPOSITORY_URI:$TAG --no-verify --htmlfile aqua.html
+      - ./scannercli scan --host $AQUA_URL -A $AQUA_SCANNER_TOKEN --local $REPOSITORY_URI:$TAG --no-verify --htmlfile aqua.html
       - docker push $REPOSITORY_URI:$TAG
   post_build:
     commands:
