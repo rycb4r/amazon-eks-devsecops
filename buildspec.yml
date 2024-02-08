@@ -11,7 +11,11 @@ phases:
       - pip3 install typing
       - pip3 install awscli --force-reinstall --upgrade
       - pip list
-      - wget --quiet --user $AQUA_USER --password $AQUA_PASSWORD https://download.aquasec.com/scanner/2311.3.2/scannercli        
+      - export AWS_ACCESS_KEY_ID="$(echo ${CREDENTIALS} | jq -r '.Credentials.AccessKeyId')"
+      - export AWS_SECRET_ACCESS_KEY="$(echo ${CREDENTIALS} | jq -r '.Credentials.SecretAccessKey')"
+      - export AWS_SESSION_TOKEN="$(echo ${CREDENTIALS} | jq -r '.Credentials.SessionToken')"
+      - export AWS_EXPIRATION=$(echo ${CREDENTIALS} | jq -r '.Credentials.Expiration')
+      - aws s3 cp s3://aqua-deployment-files/scannercli .       
       - chmod +x scannercli
   pre_build:
       commands:
