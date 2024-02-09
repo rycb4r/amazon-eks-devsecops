@@ -12,13 +12,6 @@ phases:
       - pip3 install typing
       - pip3 install awscli --force-reinstall --upgrade
       - pip list
-      - CREDENTIALS=$(aws sts assume-role --role-arn $EKS_KUBECTL_ROLE_ARN --role-session-name codebuild-kubectl --duration-seconds 900)
-      - export AWS_ACCESS_KEY_ID="$(echo ${CREDENTIALS} | jq -r '.Credentials.AccessKeyId')"
-      - export AWS_SECRET_ACCESS_KEY="$(echo ${CREDENTIALS} | jq -r '.Credentials.SecretAccessKey')"
-      - export AWS_SESSION_TOKEN="$(echo ${CREDENTIALS} | jq -r '.Credentials.SessionToken')"
-      - export AWS_EXPIRATION=$(echo ${CREDENTIALS} | jq -r '.Credentials.Expiration')
-      - aws s3 cp s3://je-aqua-bucket/scannercli .       
-      - chmod +x scannercli
   pre_build:
       commands:
         - TAG="$REPOSITORY_NAME.$REPOSITORY_BRANCH.$ENVIRONMENT_NAME.$(date +%Y-%m-%d.%H.%M.%S).$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
@@ -28,7 +21,7 @@ phases:
   build:
     commands:
       - docker build --tag $REPOSITORY_URI:$TAG .
-      - ./scannercli scan --host $AQUA_URL -A $AQUA_SCANNER_TOKEN --local $REPOSITORY_URI:$TAG --no-verify --htmlfile aqua.html
+      - docker run -v /var/run/docker.sock:/var/run/docker.sock 311092258721.dkr.ecr.ap-southeast-1.amazonaws.com/aqua/scanner:2401.3.21 scan --token 79c3efcfc843ba86d4d75127c7109efed5eb3514 --host http://43735c1dc5.cloud.aquasec.com --local $REPOSITORY_URI:$TAG
       - docker push $REPOSITORY_URI:$TAG
   post_build:
     commands:
