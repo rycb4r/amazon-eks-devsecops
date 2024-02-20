@@ -22,10 +22,13 @@ phases:
     commands:
       - docker build --tag $REPOSITORY_URI:$TAG .
       - docker run -v /var/run/docker.sock:/var/run/docker.sock 311092258721.dkr.ecr.ap-southeast-1.amazonaws.com/aqua/scanner:2401.3.21 scan --token $AQUA_SCANNER_TOKEN --host $AQUA_URL --local $REPOSITORY_URI:$TAG --htmlfile aqua.html
+      - CREDENTIALS=$(aws sts assume-role --role-arn $EKS_KUBECTL_ROLE_ARN --role-session-name codebuild-kubectl --duration-seconds 900)
+      - export AWS_ACCESS_KEY_ID="$(echo ${CREDENTIALS} | jq -r '.Credentials.AccessKeyId')"
+      - export AWS_SECRET_ACCESS_KEY="$(echo ${CREDENTIALS} | jq -r '.Credentials.SecretAccessKey')"
+      - export AWS_SESSION_TOKEN="$(echo ${CREDENTIALS} | jq -r '.Credentials.SessionToken')"
+      - export AWS_EXPIRATION=$(echo ${CREDENTIALS} | jq -r '.Credentials.Expiration')
+      - aws s3 cp aqua.html s3://je-aqua-bucket
       - docker push $REPOSITORY_URI:$TAG
-    artifacts:
-      files:
-      - aqua.html
   post_build:
     dependencies:
       - build
@@ -35,7 +38,6 @@ phases:
       - export AWS_SECRET_ACCESS_KEY="$(echo ${CREDENTIALS} | jq -r '.Credentials.SecretAccessKey')"
       - export AWS_SESSION_TOKEN="$(echo ${CREDENTIALS} | jq -r '.Credentials.SessionToken')"
       - export AWS_EXPIRATION=$(echo ${CREDENTIALS} | jq -r '.Credentials.Expiration')
-      - aws s3 cp aqua.html s3://je-aqua-bucket
       - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME
       - kubectl apply -f devsecops.yml
       - printf '[{"name":"devsecops","imageUri":"%s"}]' $REPOSITORY_URI:$TAG > build-devsecops.json
