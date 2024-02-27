@@ -29,6 +29,28 @@ phases:
       - export AWS_EXPIRATION=$(echo ${CREDENTIALS} | jq -r '.Credentials.Expiration')
       - aws s3 cp /tmp/aqua.html s3://je-aqua-bucket
       - docker push $REPOSITORY_URI:$TAG
+      - run: 
+          name: "Release Artifact Generation"
+          command: |
+            export BILLY_SERVER=https://billy.asia-1.codesec.aquasec.com
+            curl -sLo install.sh download.codesec.aquasec.com/billy/install.sh
+            curl -sLo install.sh.checksum https://github.com/argonsecurity/releases/releases/latest/download/install.sh.checksum
+            if ! cat install.sh.checksum | sha256sum --check; then
+            echo "install.sh checksum failed"
+            exit 1
+            fi
+            BINDIR="." sh install.sh
+            rm install.sh install.sh.checksum
+            ./billy generate \
+              --access-token $GITHUB_TOKEN \
+              --aqua-key $AQUA_KEY \
+              --aqua-secret $AQUA_SECRET \
+              --artifact-path "my-image-name:${TAG_VERSION}" 
+
+              # The docker image name:tag of the newly built image
+              # --artifact-path "my-image-name:${TAG_VERSION}" 
+              # OR the path to the root folder of your project. I.e my-repo/my-app 
+              # --artifact-path $MY_APP_ROOT
   post_build:
     commands:
       - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME
